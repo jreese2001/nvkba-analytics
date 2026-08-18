@@ -11,6 +11,7 @@
   <div class="stat-tile"><div class="num">{{ "%.2f"|format(t.median_length) if t.median_length else "&ndash;" }}</div><div class="label">Median length (in)</div></div>
   <div class="stat-tile"><div class="num">{{ t.total_fish_entries }}</div><div class="label">Fish logged</div></div>
   <div class="stat-tile"><div class="num">{{ "%.0f%%"|format(t.zero_fish_pct * 100) if t.zero_fish_pct is not none else "&ndash;" }}</div><div class="label">Zero-fish rate</div></div>
+  <div class="stat-tile"><div class="num">{{ "%.1f"|format(culling.avg_caught) if culling else "&ndash;" }} / {{ "%.1f"|format(culling.avg_counted) if culling else "&ndash;" }}</div><div class="label">Avg caught / counted</div></div>
 </div>
 {% if not t.field_size_is_exact %}
 <p class="footnote">* Fishing Chaos's public roster for this tournament is unavailable, so field size shown is anglers who logged at least one fish, not true registration count.</p>
@@ -19,8 +20,13 @@
 <h2>Leaderboard</h2>
 <div class="chart-box"><canvas id="scoreChart"></canvas></div>
 <div class="card table-wrap">
-<table>
-<thead><tr><th class="num">Place</th><th>Angler</th><th class="num">Length (in)</th><th class="num">Fish</th><th class="num">Big fish</th><th class="num">AOY pts</th></tr></thead>
+<table class="sortable">
+<thead><tr>
+  <th class="num" data-num>Place</th><th>Angler</th>
+  <th class="num" data-num>Length (in)</th><th class="num" data-num>Fish</th>
+  <th class="num" data-num>Culled</th>
+  <th class="num" data-num>Big fish</th><th class="num" data-num>AOY pts</th>
+</tr></thead>
 <tbody>
 {% for r in results %}
 <tr>
@@ -28,6 +34,7 @@
   <td><a href="{{ root }}anglers/{{ r.angler_uid }}.html">{{ r.angler_name }}</a></td>
   <td class="num">{{ "%.2f"|format(r.total_length_in) if r.total_length_in is not none else "&ndash;" }}</td>
   <td class="num">{{ r.fish_count }}</td>
+  <td class="num">{{ culled_by_angler.get(r.angler_uid, 0) }}</td>
   <td class="num">{{ "%.2f"|format(r.big_fish_length_in) if r.big_fish_length_in is not none else "&ndash;" }}</td>
   <td class="num">{{ r.aoy_points|int if r.aoy_points is not none else "&ndash;" }}</td>
 </tr>
@@ -35,6 +42,7 @@
 </tbody>
 </table>
 </div>
+<p class="footnote">"Culled" is fish an angler caught beyond their counted best 5 (upgrades attempted). "Avg caught / counted" above is the field-wide average.</p>
 
 <script>
 new Chart(document.getElementById('scoreChart'), {

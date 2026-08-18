@@ -5,8 +5,8 @@
 <p class="subtitle">{{ anglers|length }} anglers with at least one scored tournament. Search by name.</p>
 <input type="search" id="anglerSearch" placeholder="Search anglers...">
 <div class="card table-wrap">
-<table id="anglerTable">
-<thead><tr><th>Angler</th><th class="num">Events</th><th class="num">Avg place</th><th class="num">Best place</th><th class="num">Avg length</th><th class="num">Career big fish</th></tr></thead>
+<table id="anglerTable" class="sortable">
+<thead><tr><th>Angler</th><th class="num" data-num>Events</th><th class="num" data-num>Avg place</th><th class="num" data-num>Best place</th><th class="num" data-num>Avg length</th><th class="num" data-num>Career big fish</th></tr></thead>
 <tbody>
 {% for a in anglers %}
 <tr data-name="{{ a.angler_name|lower }}">

@@ -6,8 +6,8 @@
 {% for year, rows in by_year %}
 <h2>{{ year }}</h2>
 <div class="card table-wrap">
-<table>
-<thead><tr><th>Date</th><th>Event</th><th>Lake</th><th class="num">Field</th><th class="num">Winning length</th></tr></thead>
+<table class="sortable">
+<thead><tr><th>Date</th><th>Event</th><th>Lake</th><th class="num" data-num>Field</th><th class="num" data-num>Winning length</th></tr></thead>
 <tbody>
 {% for t in rows %}
 <tr>

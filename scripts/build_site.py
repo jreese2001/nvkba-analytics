@@ -51,8 +51,10 @@ def build():
     (SITE_DIR / "anglers").mkdir()
     (SITE_DIR / "aoy").mkdir()
     (SITE_DIR / "compare").mkdir()
+    (SITE_DIR / "explore").mkdir()
 
     shutil.copy(TEMPLATES_DIR / "style.css", SITE_DIR / "style.css")
+    shutil.copy(TEMPLATES_DIR / "sortable.js", SITE_DIR / "sortable.js")
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=False)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -96,17 +98,31 @@ def build():
            generated_at=generated_at, tournaments=tournaments, by_year=by_year_sorted)
 
     # ---- tournaments/{id}.html ----
+    culling_rows = rows_as_dicts(con, "SELECT * FROM v_culling")
+    culling_by_tournament: dict[str, list] = {}
+    for c in culling_rows:
+        culling_by_tournament.setdefault(c["tournament_id"], []).append(c)
+
     for t in tournaments:
         results = rows_as_dicts(
             con,
             "SELECT * FROM results WHERE tournament_id = ? ORDER BY place ASC",
             (t["tournament_id"],),
         )
+        tc = culling_by_tournament.get(t["tournament_id"], [])
+        culling_summary = None
+        if tc:
+            culling_summary = {
+                "avg_caught": sum(c["total_fish_caught"] for c in tc) / len(tc),
+                "avg_counted": sum(c["fish_counted"] for c in tc) / len(tc),
+            }
+        culled_by_angler = {c["angler_uid"]: c["fish_culled"] for c in tc}
         render(
             env, "tournament.html", SITE_DIR / "tournaments" / f"{t['tournament_id']}.html", root="../",
             generated_at=generated_at, t=t, results=results,
             chart_labels=[f"#{r['place']} {r['angler_name']}" for r in results],
             chart_scores=[r["total_length_in"] for r in results],
+            culling=culling_summary, culled_by_angler=culled_by_angler,
         )
 
     # ---- lakes/index.html ----
@@ -114,9 +130,16 @@ def build():
            generated_at=generated_at, lakes=lakes)
 
     # ---- lakes/{slug}.html ----
+    big_fish_rows = rows_as_dicts(con, "SELECT * FROM v_tournament_big_fish")
+    big_fish_by_tournament = {b["tournament_id"]: b for b in big_fish_rows}
+
     for l in lakes:
         lake_tournaments = [t for t in tournaments if t["lake"] == l["lake"]]
         lake_tournaments.sort(key=lambda t: t["event_date"] or "")
+        for t in lake_tournaments:
+            t["big_fish"] = big_fish_by_tournament.get(t["tournament_id"])
+        stdevs = [t["top10_stdev_length"] for t in lake_tournaments if t["top10_stdev_length"] is not None]
+        avg_top10_stdev = sum(stdevs) / len(stdevs) if stdevs else None
         render(
             env, "lake.html", SITE_DIR / "lakes" / f"{l['slug']}.html", root="../",
             generated_at=generated_at, lake=l["lake"], stats=l,
@@ -124,6 +147,7 @@ def build():
             chart_labels=[f"{t['year']} {t['event_date']}" for t in lake_tournaments],
             chart_winning=[t["winning_length"] for t in lake_tournaments],
             chart_median=[t["median_length"] for t in lake_tournaments],
+            avg_top10_stdev=avg_top10_stdev,
         )
 
     # ---- anglers/index.html ----
@@ -148,11 +172,17 @@ def build():
     for a in aoy_rows_all:
         aoy_by_angler.setdefault(a["angler_uid"], []).append(a)
 
+    field_scores_by_lake: dict[str, list] = {}
+    for r in all_results:
+        if r["total_length_in"] is not None:
+            field_scores_by_lake.setdefault(r["lake"], []).append(r["total_length_in"])
+
     for a in anglers:
         uid = a["angler_uid"]
         history = sorted(results_by_angler.get(uid, []), key=lambda r: r["event_date"] or "", reverse=True)
         consistency = compute_consistency(history, field_scores_by_tournament)
         cutline_pct = compute_cutline_pct(history)
+        lake_breakdown = compute_lake_breakdown(history, field_scores_by_lake)
         render(
             env, "angler.html", SITE_DIR / "anglers" / f"{uid}.html", root="../",
             generated_at=generated_at, angler=a, history=history,
@@ -160,6 +190,7 @@ def build():
             chart_scores=[h["total_length_in"] for h in reversed(history)],
             consistency=consistency, cutline_pct=cutline_pct,
             aoy_rows=aoy_by_angler.get(uid, []),
+            lake_breakdown=lake_breakdown,
         )
 
     # ---- aoy/index.html ----
@@ -189,6 +220,28 @@ def build():
            anglers=[{"angler_uid": a["angler_uid"], "angler_name": a["angler_name"]} for a in anglers],
            results=compact_results)
 
+    # ---- explore/index.html ----
+    explore_rows = [
+        {
+            "tournament_id": r["tournament_id"],
+            "event_name": r["event_name"],
+            "event_date": r["event_date"],
+            "year": r["year"],
+            "lake": r["lake"],
+            "angler_uid": r["angler_uid"],
+            "angler_name": r["angler_name"],
+            "place": r["place"],
+            "field_size": r["field_size"],
+            "total_length_in": r["total_length_in"],
+            "big_fish_length_in": r["big_fish_length_in"],
+            "aoy_points": r["aoy_points"],
+        }
+        for r in all_results
+    ]
+    render(env, "explore.html", SITE_DIR / "explore" / "index.html", root="../",
+           generated_at=generated_at, rows=explore_rows, years=years,
+           lakes=sorted({l["lake"] for l in lakes}))
+
     con.close()
     print(f"Site built: {len(tournaments)} tournaments, {len(anglers)} anglers, {len(lakes)} lakes -> {SITE_DIR}")
 
@@ -212,6 +265,36 @@ def compute_consistency(history, field_scores_by_tournament):
     if avg_field_sd == 0:
         return None
     return own_sd / avg_field_sd
+
+
+def compute_lake_breakdown(history, field_scores_by_lake):
+    """Per-lake avg place/length for this angler, vs. the field average at that lake."""
+    by_lake: dict[str, list] = {}
+    for h in history:
+        by_lake.setdefault(h["lake"], []).append(h)
+
+    rows = []
+    for lake, events in by_lake.items():
+        places = [e["place"] for e in events if e["place"] is not None]
+        lengths = [e["total_length_in"] for e in events if e["total_length_in"] is not None]
+        if not lengths:
+            continue
+        avg_length = sum(lengths) / len(lengths)
+        field_scores = field_scores_by_lake.get(lake, [])
+        field_avg = sum(field_scores) / len(field_scores) if field_scores else None
+        rows.append(
+            {
+                "lake": lake,
+                "lake_slug": events[0]["lake_slug"],
+                "events": len(events),
+                "avg_place": sum(places) / len(places) if places else None,
+                "avg_length": avg_length,
+                "field_avg_length": field_avg,
+                "diff_vs_field": (avg_length - field_avg) if field_avg is not None else None,
+            }
+        )
+    rows.sort(key=lambda r: r["events"], reverse=True)
+    return rows
 
 
 def compute_cutline_pct(history):

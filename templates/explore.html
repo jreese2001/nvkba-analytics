@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Explore &mdash; NVKBA Analytics{% endblock %}
+{% block content %}
+<h1>Explore results</h1>
+<p class="subtitle">Filter and sort every scored result across all tracked tournaments. Click a column header to sort.</p>
+
+<div class="filter-bar">
+  <div class="field">
+    <label for="fYear">Season</label>
+    <select id="fYear"><option value="">All years</option>{% for y in years %}<option value="{{ y }}">{{ y }}</option>{% endfor %}</select>
+  </div>
+  <div class="field">
+    <label for="fLake">Lake</label>
+    <select id="fLake"><option value="">All lakes</option>{% for l in lakes %}<option value="{{ l }}">{{ l }}</option>{% endfor %}</select>
+  </div>
+  <div class="field">
+    <label for="fAngler">Angler</label>
+    <input type="text" id="fAngler" placeholder="Search name...">
+  </div>
+  <div class="field">
+    <label for="fTop">&nbsp;</label>
+    <label><input type="checkbox" id="fTop"> Top 10 finishes only</label>
+  </div>
+  <div class="field">
+    <button id="fReset" type="button">Reset filters</button>
+  </div>
+</div>
+
+<div class="stat-grid" id="summaryStats"></div>
+
+<div class="card table-wrap">
+<table class="sortable" id="resultsTable">
+<thead><tr>
+  <th>Date</th><th>Tournament</th><th>Lake</th><th>Angler</th>
+  <th class="num" data-num>Place</th><th class="num" data-num>Field</th>
+  <th class="num" data-num>Length (in)</th><th class="num" data-num>Big fish</th><th class="num" data-num>AOY pts</th>
+</tr></thead>
+<tbody id="resultsBody"></tbody>
+</table>
+</div>
+
+<script>
+const ROWS = {{ rows|tojson }};
+
+function fmt(v, d) { return (v === null || v === undefined) ? '&ndash;' : v.toFixed ? v.toFixed(d) : v; }
+
+function applyFilters() {
+  const year = document.getElementById('fYear').value;
+  const lake = document.getElementById('fLake').value;
+  const angler = document.getElementById('fAngler').value.trim().toLowerCase();
+  const topOnly = document.getElementById('fTop').checked;
+
+  const filtered = ROWS.filter(r => {
+    if (year && String(r.year) !== year) return false;
+    if (lake && r.lake !== lake) return false;
+    if (angler && r.angler_name.toLowerCase().indexOf(angler) === -1) return false;
+    if (topOnly && !(r.place && r.place <= 10)) return false;
+    return true;
+  });
+
+  const body = document.getElementById('resultsBody');
+  body.innerHTML = filtered.map(r => `
+    <tr>
+      <td>${r.event_date || ''}</td>
+      <td><a href="../tournaments/${r.tournament_id}.html">${r.event_name}</a></td>
+      <td>${r.lake}</td>
+      <td><a href="../anglers/${r.angler_uid}.html">${r.angler_name}</a></td>
+      <td class="num">${r.place ?? ''}</td>
+      <td class="num">${r.field_size ?? ''}</td>
+      <td class="num">${r.total_length_in != null ? r.total_length_in.toFixed(2) : '&ndash;'}</td>
+      <td class="num">${r.big_fish_length_in != null ? r.big_fish_length_in.toFixed(2) : '&ndash;'}</td>
+      <td class="num">${r.aoy_points != null ? Math.round(r.aoy_points) : '&ndash;'}</td>
+    </tr>`).join('');
+
+  const n = filtered.length;
+  const avg = arr => arr.length ? arr.reduce((s, x) => s + x, 0) / arr.length : null;
+  const lengths = filtered.map(r => r.total_length_in).filter(x => x != null);
+  const places = filtered.map(r => r.place).filter(x => x != null);
+  const avgLen = avg(lengths), avgPlace = avg(places);
+  const bestLen = lengths.length ? Math.max(...lengths) : null;
+
+  document.getElementById('summaryStats').innerHTML = `
+    <div class="stat-tile"><div class="num">${n}</div><div class="label">Results</div></div>
+    <div class="stat-tile"><div class="num">${avgLen != null ? avgLen.toFixed(2) : '&ndash;'}</div><div class="label">Avg length (in)</div></div>
+    <div class="stat-tile"><div class="num">${bestLen != null ? bestLen.toFixed(2) : '&ndash;'}</div><div class="label">Best length (in)</div></div>
+    <div class="stat-tile"><div class="num">${avgPlace != null ? avgPlace.toFixed(1) : '&ndash;'}</div><div class="label">Avg place</div></div>`;
+}
+
+['fYear', 'fLake', 'fAngler', 'fTop'].forEach(id => {
+  document.getElementById(id).addEventListener('input', applyFilters);
+  document.getElementById(id).addEventListener('change', applyFilters);
+});
+document.getElementById('fReset').addEventListener('click', function () {
+  document.getElementById('fYear').value = '';
+  document.getElementById('fLake').value = '';
+  document.getElementById('fAngler').value = '';
+  document.getElementById('fTop').checked = false;
+  applyFilters();
+});
+applyFilters();
+</script>
+{% endblock %}

@@ -3,8 +3,8 @@
 {% block content %}
 <h1>Lakes</h1>
 <div class="card table-wrap">
-<table>
-<thead><tr><th>Lake</th><th class="num">Tournaments</th><th class="num">Seasons</th><th class="num">Avg winning length</th><th class="num">Avg field size</th></tr></thead>
+<table class="sortable">
+<thead><tr><th>Lake</th><th class="num" data-num>Tournaments</th><th class="num" data-num>Seasons</th><th class="num" data-num>Avg winning length</th><th class="num" data-num>Avg field size</th></tr></thead>
 <tbody>
 {% for l in lakes %}
 <tr>
