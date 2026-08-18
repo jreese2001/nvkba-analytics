@@ -17,6 +17,28 @@ SPECIES_CACHE_PATH = RAW_DIR / "_fish_types_cache.json"
 TOURNAMENT_ID_RE = re.compile(r"/tournament/([A-Za-z0-9_-]+)")
 SERIES_ID_RE = re.compile(r"/tournament-series/([A-Za-z0-9_-]+)")
 
+# Rough venue grouping for the angler "strength by venue type" breakdown.
+# Standing-water lakes/reservoirs (including the multi-lake "Battle of Five
+# Lakes" events) vs. freshwater smallmouth rivers vs. tidal rivers. Extend
+# this if a new lake name shows up that doesn't fit -- unmapped lakes are
+# left out of the category breakdown rather than guessed.
+VENUE_CATEGORIES = {
+    "Lake Anna": "Lakes",
+    "Lake Frederick": "Lakes",
+    "Occoquan Reservoir": "Lakes",
+    "Multiple (Battle of Five Lakes)": "Lakes",
+    "Shenandoah River": "Freshwater Rivers (Smallmouth)",
+    "Upper Potomac River": "Freshwater Rivers (Smallmouth)",
+    "Tidal Potomac River": "Tidal Rivers",
+    "Tidal Rappahannock River": "Tidal Rivers",
+    "Rappahannock River": "Tidal Rivers",
+}
+VENUE_CATEGORY_ORDER = ["Lakes", "Freshwater Rivers (Smallmouth)", "Tidal Rivers"]
+
+
+def categorize_lake(lake: str) -> str | None:
+    return VENUE_CATEGORIES.get(lake)
+
 
 def extract_tournament_id(url_or_id: str) -> str:
     """Accept a full share/app URL or a bare tournament ID; return the ID."""

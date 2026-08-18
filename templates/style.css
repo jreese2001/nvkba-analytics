@@ -86,6 +86,27 @@ input[type=text], input[type=search], select {
 .list-links li:last-child { border-bottom: none; }
 
 .footnote { color: var(--muted); font-size: 0.82rem; }
+
+.info-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; border-radius: 50%;
+  background: var(--border); color: var(--muted);
+  font-size: 0.68rem; font-weight: 700; font-style: normal;
+  cursor: help; position: relative; margin-left: 5px; vertical-align: middle;
+}
+.info-icon:hover, .info-icon:focus { background: var(--navy); color: #fff; outline: none; }
+.info-icon .tooltip-bubble {
+  display: none; position: absolute; z-index: 10; left: 50%; bottom: 145%;
+  transform: translateX(-50%); width: 220px; padding: 8px 10px;
+  background: var(--navy); color: #fff; font-size: 0.76rem; font-weight: 400;
+  line-height: 1.35; border-radius: 6px; text-align: left; white-space: normal;
+}
+.info-icon .tooltip-bubble::after {
+  content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: var(--navy);
+}
+.info-icon:hover .tooltip-bubble, .info-icon:focus .tooltip-bubble { display: block; }
+.stat-tile .label { position: relative; }
 .site-footer { border-top: 1px solid var(--border); padding: 18px 0 30px; color: var(--muted); font-size: 0.82rem; }
 
 .compare-cols { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: start; }
@@ -97,3 +118,11 @@ input[type=text], input[type=search], select {
 .filter-bar select, .filter-bar input { max-width: 220px; }
 .filter-bar button { padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px; background: #eef1f5; cursor: pointer; font-size: 0.86rem; }
 .filter-bar button:hover { background: var(--gold); color: #fff; }
+
+.toggle-group { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+.toggle-group button {
+  padding: 6px 14px; border: none; background: #fff; color: var(--muted);
+  font-size: 0.84rem; cursor: pointer; border-right: 1px solid var(--border);
+}
+.toggle-group button:last-child { border-right: none; }
+.toggle-group button.active { background: var(--navy); color: #fff; }

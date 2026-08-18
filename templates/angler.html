@@ -10,15 +10,28 @@
   <div class="stat-tile"><div class="num">{{ "%.2f"|format(angler.avg_total_length_in) if angler.avg_total_length_in else "&ndash;" }}</div><div class="label">Avg length (in)</div></div>
   <div class="stat-tile"><div class="num">{{ "%.2f"|format(angler.career_big_fish_in) if angler.career_big_fish_in else "&ndash;" }}</div><div class="label">Career big fish (in)</div></div>
   {% if consistency is not none %}
-  <div class="stat-tile"><div class="num">{{ "%.2f"|format(consistency) }}</div><div class="label">Consistency (own &sigma; / field &sigma;)</div></div>
+  <div class="stat-tile">
+    <div class="num">{{ "%.2f"|format(consistency) }}</div>
+    <div class="label">Consistency
+      <span class="info-icon" tabindex="0">i<span class="tooltip-bubble">Ratio of this angler's own tournament-to-tournament variation to the field's variation. Below 1.0: steadier than the field (predictable finishes). Above 1.0: more volatile than the field (boom-or-bust). Around 1.0: about as consistent as everyone else.</span></span>
+    </div>
+  </div>
   {% endif %}
   {% if cutline_pct is not none %}
-  <div class="stat-tile"><div class="num">{{ "%.0f%%"|format(cutline_pct * 100) }}</div><div class="label">Finishes above field median</div></div>
+  <div class="stat-tile">
+    <div class="num">{{ "%.0f%%"|format(cutline_pct * 100) }}</div>
+    <div class="label">Above field median
+      <span class="info-icon" tabindex="0">i<span class="tooltip-bubble">Share of tournaments where this angler finished in the top half of the field (by place).</span></span>
+    </div>
+  </div>
   {% endif %}
 </div>
-<p class="footnote">Consistency &lt; 1.0 means this angler's results vary less than the field's, tournament to tournament (lower = steadier).</p>
 
 <h2>Timeline</h2>
+<div class="toggle-group" id="timelineToggle">
+  <button type="button" data-metric="length" class="active">Length (in)</button>
+  <button type="button" data-metric="place">Place</button>
+</div>
 <div class="chart-box"><canvas id="anglerChart"></canvas></div>
 
 <h2>Results by tournament</h2>
@@ -46,6 +59,35 @@
 </table>
 </div>
 
+{% if category_breakdown %}
+<h2>Strength by venue type</h2>
+<div class="card table-wrap">
+<table class="sortable">
+<thead><tr>
+  <th>Venue type</th><th class="num" data-num>Events</th><th class="num" data-num>Avg place</th>
+  <th class="num" data-num>Avg length (in)</th><th class="num" data-num>Field avg (in)</th><th class="num" data-num>Vs. field</th>
+</tr></thead>
+<tbody>
+{% for cb in category_breakdown %}
+<tr>
+  <td>{{ cb.category }}</td>
+  <td class="num">{{ cb.events }}</td>
+  <td class="num">{{ "%.1f"|format(cb.avg_place) }}</td>
+  <td class="num">{{ "%.2f"|format(cb.avg_length) }}</td>
+  <td class="num">{{ "%.2f"|format(cb.field_avg_length) if cb.field_avg_length is not none else "&ndash;" }}</td>
+  <td class="num">
+    {% if cb.diff_vs_field is not none %}
+      <span class="badge {{ 'gold' if cb.diff_vs_field > 0 else 'muted' }}">{{ "%+.2f"|format(cb.diff_vs_field) }} in</span>
+    {% else %}&ndash;{% endif %}
+  </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<p class="footnote">Venue types: <strong>Lakes</strong> (Lake Anna, Lake Frederick, Occoquan Reservoir, Battle of Five Lakes events), <strong>Freshwater Rivers</strong> (Shenandoah, Upper Potomac &mdash; smallmouth-only events), <strong>Tidal Rivers</strong> (Tidal Potomac, Rappahannock).</p>
+{% endif %}
+
 {% if lake_breakdown %}
 <h2>Performance by lake</h2>
 <div class="card table-wrap">
@@ -72,7 +114,7 @@
 </tbody>
 </table>
 </div>
-<p class="footnote">"Vs. field" is this angler's avg length at that lake minus the average of every scored result there (including their own).</p>
+<p class="footnote">"Vs. field" is this angler's avg length there minus the average of every scored result there (including their own).</p>
 {% endif %}
 
 {% if aoy_rows %}
@@ -90,13 +132,37 @@
 {% endif %}
 
 <script>
-new Chart(document.getElementById('anglerChart'), {
+const TL_LABELS = {{ chart_labels|tojson }};
+const TL_LENGTH = {{ chart_scores|tojson }};
+const TL_PLACE = {{ chart_places|tojson }};
+
+const anglerChart = new Chart(document.getElementById('anglerChart'), {
   type: 'line',
   data: {
-    labels: {{ chart_labels|tojson }},
-    datasets: [{ label: 'Total length (in)', data: {{ chart_scores|tojson }}, borderColor: '#0b2545', tension: 0.15 }]
+    labels: TL_LABELS,
+    datasets: [{ label: 'Total length (in)', data: TL_LENGTH, borderColor: '#0b2545', tension: 0.15 }]
   },
-  options: { maintainAspectRatio: false }
+  options: { maintainAspectRatio: false, scales: { y: { reverse: false } } }
+});
+
+document.getElementById('timelineToggle').addEventListener('click', function (e) {
+  const btn = e.target.closest('button[data-metric]');
+  if (!btn) return;
+  document.querySelectorAll('#timelineToggle button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const metric = btn.dataset.metric;
+  if (metric === 'length') {
+    anglerChart.data.datasets[0].label = 'Total length (in)';
+    anglerChart.data.datasets[0].data = TL_LENGTH;
+    anglerChart.options.scales.y.reverse = false;
+    anglerChart.options.scales.y.title = { display: false };
+  } else {
+    anglerChart.data.datasets[0].label = 'Place';
+    anglerChart.data.datasets[0].data = TL_PLACE;
+    anglerChart.options.scales.y.reverse = true;
+    anglerChart.options.scales.y.title = { display: true, text: 'Place (lower = better, axis reversed)' };
+  }
+  anglerChart.update();
 });
 </script>
 {% endblock %}

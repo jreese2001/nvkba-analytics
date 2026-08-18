@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from jinja2 import Environment, FileSystemLoader
 
-from nvkba_common import DB_PATH, ROOT
+from nvkba_common import DB_PATH, ROOT, VENUE_CATEGORY_ORDER, categorize_lake
 
 TEMPLATES_DIR = ROOT / "templates"
 SITE_DIR = ROOT / "site"
@@ -50,7 +50,7 @@ def build():
     (SITE_DIR / "lakes").mkdir()
     (SITE_DIR / "anglers").mkdir()
     (SITE_DIR / "aoy").mkdir()
-    (SITE_DIR / "compare").mkdir()
+    (SITE_DIR / "head-to-head").mkdir()
     (SITE_DIR / "explore").mkdir()
 
     shutil.copy(TEMPLATES_DIR / "style.css", SITE_DIR / "style.css")
@@ -173,9 +173,13 @@ def build():
         aoy_by_angler.setdefault(a["angler_uid"], []).append(a)
 
     field_scores_by_lake: dict[str, list] = {}
+    field_scores_by_category: dict[str, list] = {}
     for r in all_results:
         if r["total_length_in"] is not None:
             field_scores_by_lake.setdefault(r["lake"], []).append(r["total_length_in"])
+            cat = categorize_lake(r["lake"])
+            if cat:
+                field_scores_by_category.setdefault(cat, []).append(r["total_length_in"])
 
     for a in anglers:
         uid = a["angler_uid"]
@@ -183,14 +187,17 @@ def build():
         consistency = compute_consistency(history, field_scores_by_tournament)
         cutline_pct = compute_cutline_pct(history)
         lake_breakdown = compute_lake_breakdown(history, field_scores_by_lake)
+        category_breakdown = compute_category_breakdown(history, field_scores_by_category)
         render(
             env, "angler.html", SITE_DIR / "anglers" / f"{uid}.html", root="../",
             generated_at=generated_at, angler=a, history=history,
             chart_labels=[h["event_date"] for h in reversed(history)],
             chart_scores=[h["total_length_in"] for h in reversed(history)],
+            chart_places=[h["place"] for h in reversed(history)],
             consistency=consistency, cutline_pct=cutline_pct,
             aoy_rows=aoy_by_angler.get(uid, []),
             lake_breakdown=lake_breakdown,
+            category_breakdown=category_breakdown,
         )
 
     # ---- aoy/index.html ----
@@ -203,7 +210,7 @@ def build():
     render(env, "aoy.html", SITE_DIR / "aoy" / "index.html", root="../",
            generated_at=generated_at, years=aoy_years, standings_by_year=standings_by_year)
 
-    # ---- compare/index.html ----
+    # ---- head-to-head/index.html ----
     compact_results = [
         {
             "angler_uid": r["angler_uid"],
@@ -215,7 +222,7 @@ def build():
         }
         for r in all_results
     ]
-    render(env, "compare.html", SITE_DIR / "compare" / "index.html", root="../",
+    render(env, "head-to-head.html", SITE_DIR / "head-to-head" / "index.html", root="../",
            generated_at=generated_at,
            anglers=[{"angler_uid": a["angler_uid"], "angler_name": a["angler_name"]} for a in anglers],
            results=compact_results)
@@ -294,6 +301,40 @@ def compute_lake_breakdown(history, field_scores_by_lake):
             }
         )
     rows.sort(key=lambda r: r["events"], reverse=True)
+    return rows
+
+
+def compute_category_breakdown(history, field_scores_by_category):
+    """Same idea as compute_lake_breakdown but grouped into venue types
+    (Lakes / Freshwater Rivers / Tidal Rivers) instead of individual lakes."""
+    by_cat: dict[str, list] = {}
+    for h in history:
+        cat = categorize_lake(h["lake"])
+        if cat:
+            by_cat.setdefault(cat, []).append(h)
+
+    rows = []
+    for cat in VENUE_CATEGORY_ORDER:
+        events = by_cat.get(cat)
+        if not events:
+            continue
+        places = [e["place"] for e in events if e["place"] is not None]
+        lengths = [e["total_length_in"] for e in events if e["total_length_in"] is not None]
+        if not lengths:
+            continue
+        avg_length = sum(lengths) / len(lengths)
+        field_scores = field_scores_by_category.get(cat, [])
+        field_avg = sum(field_scores) / len(field_scores) if field_scores else None
+        rows.append(
+            {
+                "category": cat,
+                "events": len(events),
+                "avg_place": sum(places) / len(places) if places else None,
+                "avg_length": avg_length,
+                "field_avg_length": field_avg,
+                "diff_vs_field": (avg_length - field_avg) if field_avg is not None else None,
+            }
+        )
     return rows
 
 
