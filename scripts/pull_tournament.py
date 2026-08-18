@@ -170,10 +170,17 @@ def normalize(tournament_id: str, raw: dict, client: FirestoreClient, species_ca
             }
         )
 
-    # Catches per angler_uid, from the full public entries collection (includes culled fish)
+    # Catches per angler_uid, from the full public entries collection (includes culled fish).
+    # Some tournaments run an optional side pot for a different species (snakehead side
+    # challenges are the common one) using the same tournament-entries-public collection.
+    # Those catches aren't part of NVKBA's bass scoring, so only keep entries that are
+    # actually associated with the main (best-5-length) leaderboard -- more robust than
+    # filtering by species name, since side-pot naming isn't consistent across tournaments.
     catches_by_angler: dict[str, list] = {}
     for doc in entries_public:
         if doc.get("status") != "official":
+            continue
+        if main_leaderboard_id not in (doc.get("leaderboardIds") or []):
             continue
         angler_id = doc.get("anglerId")
         uid, name = angler_id_to_identity.get(angler_id, (angler_id, "Unknown"))
@@ -189,9 +196,15 @@ def normalize(tournament_id: str, raw: dict, client: FirestoreClient, species_ca
             }
         )
 
-    # Fill in big_fish_length_in from ALL catches (not just counted) where we have that data
+    # Fill in big_fish_length_in from ALL non-disqualified catches (not just the counted
+    # best 5). Disqualified entries are kept in fish_catches for the record but excluded
+    # here -- otherwise an obvious data-entry error (e.g. a 1475" "bass") that a judge
+    # disqualified would still blow out this stat.
     big_fish_by_uid = {
-        uid: max((r["length_in"] for r in info["rows"] if r["length_in"] is not None), default=None)
+        uid: max(
+            (r["length_in"] for r in info["rows"] if r["length_in"] is not None and not r["is_disqualified"]),
+            default=None,
+        )
         for uid, info in catches_by_angler.items()
     }
     for row in results_rows:

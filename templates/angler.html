@@ -33,6 +33,7 @@
   <button type="button" data-metric="place">Place</button>
 </div>
 <div class="chart-box"><canvas id="anglerChart"></canvas></div>
+<p class="footnote"><span class="legend-dot gold"></span> top 10% finish that event</p>
 
 <h2>Results by tournament</h2>
 <div class="card table-wrap">
@@ -135,14 +136,23 @@
 const TL_LABELS = {{ chart_labels|tojson }};
 const TL_LENGTH = {{ chart_scores|tojson }};
 const TL_PLACE = {{ chart_places|tojson }};
+const TL_TOP10 = {{ chart_top10|tojson }};
+
+const GOLD = '#c9a227';
+const NAVY = '#0b2545';
+const pointColors = TL_TOP10.map(t => t ? GOLD : NAVY);
+const pointRadii = TL_TOP10.map(t => t ? 5 : 3);
 
 const anglerChart = new Chart(document.getElementById('anglerChart'), {
   type: 'line',
   data: {
     labels: TL_LABELS,
-    datasets: [{ label: 'Total length (in)', data: TL_LENGTH, borderColor: '#0b2545', tension: 0.15 }]
+    datasets: [{
+      label: 'Total length (in)', data: TL_LENGTH, borderColor: NAVY, tension: 0.15,
+      pointBackgroundColor: pointColors, pointBorderColor: pointColors, pointRadius: pointRadii,
+    }]
   },
-  options: { maintainAspectRatio: false, scales: { y: { reverse: false } } }
+  options: { maintainAspectRatio: false, scales: { y: { reverse: false, title: { display: false } } } }
 });
 
 document.getElementById('timelineToggle').addEventListener('click', function (e) {
@@ -155,12 +165,10 @@ document.getElementById('timelineToggle').addEventListener('click', function (e)
     anglerChart.data.datasets[0].label = 'Total length (in)';
     anglerChart.data.datasets[0].data = TL_LENGTH;
     anglerChart.options.scales.y.reverse = false;
-    anglerChart.options.scales.y.title = { display: false };
   } else {
     anglerChart.data.datasets[0].label = 'Place';
     anglerChart.data.datasets[0].data = TL_PLACE;
     anglerChart.options.scales.y.reverse = true;
-    anglerChart.options.scales.y.title = { display: true, text: 'Place (lower = better, axis reversed)' };
   }
   anglerChart.update();
 });

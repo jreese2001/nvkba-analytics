@@ -49,8 +49,8 @@ a { color: var(--navy-2); }
 .stat-tile .num { font-size: 1.5rem; font-weight: 700; color: var(--navy); }
 .stat-tile .label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
 
-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
-th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 0.92rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
 table.sortable th:hover { color: var(--navy); }
 table.sortable th.sorted-asc::after { content: " \25B2"; font-size: 0.7em; }
@@ -86,6 +86,8 @@ input[type=text], input[type=search], select {
 .list-links li:last-child { border-bottom: none; }
 
 .footnote { color: var(--muted); font-size: 0.82rem; }
+.legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+.legend-dot.gold { background: var(--gold); }
 
 .info-icon {
   display: inline-flex; align-items: center; justify-content: center;
@@ -96,13 +98,13 @@ input[type=text], input[type=search], select {
 }
 .info-icon:hover, .info-icon:focus { background: var(--navy); color: #fff; outline: none; }
 .info-icon .tooltip-bubble {
-  display: none; position: absolute; z-index: 10; left: 50%; bottom: 145%;
-  transform: translateX(-50%); width: 220px; padding: 8px 10px;
+  display: none; position: absolute; z-index: 10; right: -8px; left: auto; bottom: 145%;
+  width: 220px; max-width: min(220px, 78vw); padding: 8px 10px;
   background: var(--navy); color: #fff; font-size: 0.76rem; font-weight: 400;
   line-height: 1.35; border-radius: 6px; text-align: left; white-space: normal;
 }
 .info-icon .tooltip-bubble::after {
-  content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  content: ""; position: absolute; top: 100%; right: 10px; left: auto;
   border: 5px solid transparent; border-top-color: var(--navy);
 }
 .info-icon:hover .tooltip-bubble, .info-icon:focus .tooltip-bubble { display: block; }

@@ -194,6 +194,7 @@ def build():
             chart_labels=[h["event_date"] for h in reversed(history)],
             chart_scores=[h["total_length_in"] for h in reversed(history)],
             chart_places=[h["place"] for h in reversed(history)],
+            chart_top10=[is_top10_pct(h) for h in reversed(history)],
             consistency=consistency, cutline_pct=cutline_pct,
             aoy_rows=aoy_by_angler.get(uid, []),
             lake_breakdown=lake_breakdown,
@@ -336,6 +337,14 @@ def compute_category_breakdown(history, field_scores_by_category):
             }
         )
     return rows
+
+
+def is_top10_pct(result_row) -> bool:
+    """True if this result placed in the top 10% of that tournament's field."""
+    place, field_size = result_row.get("place"), result_row.get("field_size")
+    if not place or not field_size:
+        return False
+    return place <= max(1, round(field_size * 0.10))
 
 
 def compute_cutline_pct(history):
