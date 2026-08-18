@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}NVKBA Analytics{% endblock %}</title>
+<link rel="stylesheet" href="{{ root }}style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="{{ root }}index.html">NVKBA Analytics</a>
+    <nav>
+      <a href="{{ root }}tournaments/index.html">Tournaments</a>
+      <a href="{{ root }}lakes/index.html">Lakes</a>
+      <a href="{{ root }}anglers/index.html">Anglers</a>
+      <a href="{{ root }}aoy/index.html">AOY</a>
+      <a href="{{ root }}compare/index.html">Compare</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+{% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    Scoring: total length (inches) of an angler's best 5 fish. Data pulled from
+    <a href="https://fishingchaos.com" target="_blank" rel="noopener">Fishing Chaos</a>.
+    Generated {{ generated_at }}.
+  </div>
+</footer>
+</body>
+</html>

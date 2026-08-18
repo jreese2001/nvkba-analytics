@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Build artifacts -- regenerated fresh from Fishing Chaos on every run.
+# See data/tournaments.csv and data/series.csv for the committed source of truth.
+data/nvkba.db
+data/raw/
+site/

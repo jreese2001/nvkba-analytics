@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Compare Anglers &mdash; NVKBA Analytics{% endblock %}
+{% block content %}
+<h1>Head-to-Head</h1>
+<p class="subtitle">Pick two anglers to compare their shared tournament history.</p>
+
+<div class="compare-cols">
+  <div>
+    <label>Angler A</label>
+    <input type="text" id="anglerA" list="anglerList" placeholder="Start typing a name...">
+  </div>
+  <div class="vs">vs</div>
+  <div>
+    <label>Angler B</label>
+    <input type="text" id="anglerB" list="anglerList" placeholder="Start typing a name...">
+  </div>
+</div>
+<datalist id="anglerList">
+{% for a in anglers %}<option value="{{ a.angler_name }}" data-uid="{{ a.angler_uid }}"></option>{% endfor %}
+</datalist>
+
+<div id="compareResult"></div>
+
+<script>
+const ANGLERS = {{ anglers|tojson }};
+const RESULTS = {{ results|tojson }};
+
+function findUid(name) {
+  const a = ANGLERS.find(x => x.angler_name.toLowerCase() === name.trim().toLowerCase());
+  return a ? a.angler_uid : null;
+}
+
+function renderCompare() {
+  const nameA = document.getElementById('anglerA').value;
+  const nameB = document.getElementById('anglerB').value;
+  const uidA = findUid(nameA), uidB = findUid(nameB);
+  const out = document.getElementById('compareResult');
+  if (!uidA || !uidB) { out.innerHTML = ''; return; }
+  if (uidA === uidB) { out.innerHTML = '<p class="footnote">Pick two different anglers.</p>'; return; }
+
+  const rowsA = RESULTS.filter(r => r.angler_uid === uidA);
+  const rowsB = RESULTS.filter(r => r.angler_uid === uidB);
+  const byTournamentA = Object.fromEntries(rowsA.map(r => [r.tournament_id, r]));
+  const byTournamentB = Object.fromEntries(rowsB.map(r => [r.tournament_id, r]));
+  const shared = Object.keys(byTournamentA).filter(tid => byTournamentB[tid]);
+
+  let winsA = 0, winsB = 0, ties = 0;
+  let rowsHtml = '';
+  shared.sort((a, b) => byTournamentA[a].event_date < byTournamentA[b].event_date ? 1 : -1);
+  shared.forEach(tid => {
+    const a = byTournamentA[tid], b = byTournamentB[tid];
+    let winner = '=';
+    if (a.place < b.place) { winsA++; winner = nameA; }
+    else if (b.place < a.place) { winsB++; winner = nameB; }
+    else { ties++; }
+    rowsHtml += `<tr><td>${a.event_date}</td><td>${a.event_name}</td>
+      <td class="num">${a.place} (${a.total_length_in ?? '-'} in)</td>
+      <td class="num">${b.place} (${b.total_length_in ?? '-'} in)</td>
+      <td>${winner}</td></tr>`;
+  });
+
+  const avg = arr => arr.length ? (arr.reduce((s, x) => s + x, 0) / arr.length) : null;
+  const avgPlaceA = avg(rowsA.map(r => r.place));
+  const avgPlaceB = avg(rowsB.map(r => r.place));
+  const avgLenA = avg(rowsA.map(r => r.total_length_in).filter(x => x != null));
+  const avgLenB = avg(rowsB.map(r => r.total_length_in).filter(x => x != null));
+
+  out.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-tile"><div class="num">${shared.length}</div><div class="label">Shared tournaments</div></div>
+      <div class="stat-tile"><div class="num">${winsA} &ndash; ${winsB}${ties ? ' (' + ties + ' tied)' : ''}</div><div class="label">${nameA} vs ${nameB} record</div></div>
+      <div class="stat-tile"><div class="num">${avgPlaceA ? avgPlaceA.toFixed(1) : '-'} / ${avgPlaceB ? avgPlaceB.toFixed(1) : '-'}</div><div class="label">Avg place (A/B, career)</div></div>
+      <div class="stat-tile"><div class="num">${avgLenA ? avgLenA.toFixed(1) : '-'} / ${avgLenB ? avgLenB.toFixed(1) : '-'}</div><div class="label">Avg length in (A/B, career)</div></div>
+    </div>
+    <div class="card table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Tournament</th><th class="num">${nameA}</th><th class="num">${nameB}</th><th>Winner</th></tr></thead>
+      <tbody>${rowsHtml || '<tr><td colspan="5">No shared tournaments yet.</td></tr>'}</tbody>
+    </table>
+    </div>`;
+}
+
+document.getElementById('anglerA').addEventListener('change', renderCompare);
+document.getElementById('anglerB').addEventListener('change', renderCompare);
+</script>
+{% endblock %}

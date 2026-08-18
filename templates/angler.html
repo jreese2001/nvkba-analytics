@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ angler.angler_name }} &mdash; NVKBA Analytics{% endblock %}
+{% block content %}
+<h1>{{ angler.angler_name }}</h1>
+<p class="subtitle">{{ angler.first_year }}&ndash;{{ angler.last_year }} &middot; {{ angler.tournaments_fished }} tournament(s)</p>
+
+<div class="stat-grid">
+  <div class="stat-tile"><div class="num">{{ "%.1f"|format(angler.avg_place) if angler.avg_place else "&ndash;" }}</div><div class="label">Avg place</div></div>
+  <div class="stat-tile"><div class="num">{{ angler.best_place if angler.best_place else "&ndash;" }}</div><div class="label">Best place</div></div>
+  <div class="stat-tile"><div class="num">{{ "%.2f"|format(angler.avg_total_length_in) if angler.avg_total_length_in else "&ndash;" }}</div><div class="label">Avg length (in)</div></div>
+  <div class="stat-tile"><div class="num">{{ "%.2f"|format(angler.career_big_fish_in) if angler.career_big_fish_in else "&ndash;" }}</div><div class="label">Career big fish (in)</div></div>
+  {% if consistency is not none %}
+  <div class="stat-tile"><div class="num">{{ "%.2f"|format(consistency) }}</div><div class="label">Consistency (own &sigma; / field &sigma;)</div></div>
+  {% endif %}
+  {% if cutline_pct is not none %}
+  <div class="stat-tile"><div class="num">{{ "%.0f%%"|format(cutline_pct * 100) }}</div><div class="label">Finishes above field median</div></div>
+  {% endif %}
+</div>
+<p class="footnote">Consistency &lt; 1.0 means this angler's results vary less than the field's, tournament to tournament (lower = steadier).</p>
+
+<h2>Results by tournament</h2>
+<div class="chart-box"><canvas id="anglerChart"></canvas></div>
+<div class="card table-wrap">
+<table>
+<thead><tr><th>Date</th><th>Tournament</th><th>Lake</th><th class="num">Place</th><th class="num">Length</th><th class="num">Field</th><th class="num">AOY pts</th></tr></thead>
+<tbody>
+{% for r in history %}
+<tr>
+  <td>{{ r.event_date }}</td>
+  <td><a href="{{ root }}tournaments/{{ r.tournament_id }}.html">{{ r.event_name }}</a></td>
+  <td><a href="{{ root }}lakes/{{ r.lake_slug }}.html">{{ r.lake }}</a></td>
+  <td class="num">{{ r.place }} / {{ r.field_size }}</td>
+  <td class="num">{{ "%.2f"|format(r.total_length_in) if r.total_length_in is not none else "&ndash;" }}</td>
+  <td class="num">{{ r.field_size }}</td>
+  <td class="num">{{ r.aoy_points|int if r.aoy_points is not none else "&ndash;" }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+{% if aoy_rows %}
+<h2>AOY standings</h2>
+<div class="card table-wrap">
+<table>
+<thead><tr><th>Year</th><th class="num">Rank</th><th class="num">Points</th><th class="num">Events counted</th></tr></thead>
+<tbody>
+{% for a in aoy_rows %}
+<tr><td>{{ a.year }}</td><td class="num">{{ a.season_rank }}</td><td class="num">{{ a.season_points|int }}</td><td class="num">{{ a.events_counted }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+
+<script>
+new Chart(document.getElementById('anglerChart'), {
+  type: 'line',
+  data: {
+    labels: {{ chart_labels|tojson }},
+    datasets: [{ label: 'Total length (in)', data: {{ chart_scores|tojson }}, borderColor: '#0b2545', tension: 0.15 }]
+  },
+  options: { maintainAspectRatio: false }
+});
+</script>
+{% endblock %}

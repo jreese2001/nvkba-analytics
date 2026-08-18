@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Tournaments &mdash; NVKBA Analytics{% endblock %}
+{% block content %}
+<h1>Tournaments</h1>
+<p class="subtitle">{{ tournaments|length }} tournaments tracked.</p>
+{% for year, rows in by_year %}
+<h2>{{ year }}</h2>
+<div class="card table-wrap">
+<table>
+<thead><tr><th>Date</th><th>Event</th><th>Lake</th><th class="num">Field</th><th class="num">Winning length</th></tr></thead>
+<tbody>
+{% for t in rows %}
+<tr>
+  <td>{{ t.event_date }}</td>
+  <td><a href="{{ root }}tournaments/{{ t.tournament_id }}.html">{{ t.event_name }}</a></td>
+  <td><a href="{{ root }}lakes/{{ t.lake_slug }}.html">{{ t.lake }}</a></td>
+  <td class="num">{{ t.field_size }}{% if not t.field_size_is_exact %}<span class="footnote">*</span>{% endif %}</td>
+  <td class="num">{{ "%.2f"|format(t.winning_length) if t.winning_length else "&ndash;" }} in</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endfor %}
+{% endblock %}

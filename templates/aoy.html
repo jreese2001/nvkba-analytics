@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}AOY Standings &mdash; NVKBA Analytics{% endblock %}
+{% block content %}
+<h1>Angler of the Year</h1>
+<p class="subtitle">Season-long standings as published by Fishing Chaos (drop/eligibility rules applied by the platform).</p>
+
+<label for="yearSelect">Season:</label>
+<select id="yearSelect">
+{% for y in years %}<option value="{{ y }}" {% if loop.first %}selected{% endif %}>{{ y }}</option>{% endfor %}
+</select>
+
+{% for y in years %}
+<div class="card table-wrap aoy-year" data-year="{{ y }}" style="{% if not loop.first %}display:none{% endif %}">
+<table>
+<thead><tr><th class="num">Rank</th><th>Angler</th><th class="num">Points</th><th class="num">Events counted</th></tr></thead>
+<tbody>
+{% for row in standings_by_year[y] %}
+<tr>
+  <td class="num">{{ row.season_rank }}</td>
+  <td><a href="{{ root }}anglers/{{ row.angler_uid }}.html">{{ row.angler_name }}</a></td>
+  <td class="num">{{ row.season_points|int }}</td>
+  <td class="num">{{ row.events_counted }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endfor %}
+
+<script>
+document.getElementById('yearSelect').addEventListener('change', function (e) {
+  document.querySelectorAll('.aoy-year').forEach(function (el) {
+    el.style.display = el.dataset.year === e.target.value ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

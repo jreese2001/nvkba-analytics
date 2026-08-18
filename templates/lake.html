@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ lake }} &mdash; NVKBA Analytics{% endblock %}
+{% block content %}
+<h1>{{ lake }}</h1>
+<p class="subtitle">{{ tournaments|length }} tournament(s), {{ stats.first_year }}&ndash;{{ stats.last_year }}</p>
+
+<div class="stat-grid">
+  <div class="stat-tile"><div class="num">{{ "%.2f"|format(stats.avg_winning_length) if stats.avg_winning_length else "&ndash;" }}</div><div class="label">Avg winning length (in)</div></div>
+  <div class="stat-tile"><div class="num">{{ "%.2f"|format(stats.avg_median_length) if stats.avg_median_length else "&ndash;" }}</div><div class="label">Avg median length (in)</div></div>
+  <div class="stat-tile"><div class="num">{{ "%.0f"|format(stats.avg_field_size) if stats.avg_field_size else "&ndash;" }}</div><div class="label">Avg field size</div></div>
+</div>
+
+<h2>Trend over seasons</h2>
+<div class="chart-box"><canvas id="lakeChart"></canvas></div>
+
+<h2>Tournaments at {{ lake }}</h2>
+<div class="card table-wrap">
+<table>
+<thead><tr><th>Date</th><th>Event</th><th class="num">Field</th><th class="num">Winning</th><th class="num">Median</th></tr></thead>
+<tbody>
+{% for t in tournaments %}
+<tr>
+  <td>{{ t.event_date }}</td>
+  <td><a href="{{ root }}tournaments/{{ t.tournament_id }}.html">{{ t.event_name }}</a></td>
+  <td class="num">{{ t.field_size }}</td>
+  <td class="num">{{ "%.2f"|format(t.winning_length) if t.winning_length else "&ndash;" }}</td>
+  <td class="num">{{ "%.2f"|format(t.median_length) if t.median_length else "&ndash;" }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+
+<script>
+new Chart(document.getElementById('lakeChart'), {
+  type: 'line',
+  data: {
+    labels: {{ chart_labels|tojson }},
+    datasets: [
+      { label: 'Winning length', data: {{ chart_winning|tojson }}, borderColor: '#0b2545', tension: 0.2 },
+      { label: 'Median length', data: {{ chart_median|tojson }}, borderColor: '#c9a227', tension: 0.2 }
+    ]
+  },
+  options: { maintainAspectRatio: false }
+});
+</script>
+{% endblock %}
