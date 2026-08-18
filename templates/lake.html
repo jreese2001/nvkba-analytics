@@ -4,6 +4,14 @@
 <h1>{{ lake }}</h1>
 <p class="subtitle">{{ tournaments|length }} tournament(s), {{ stats.first_year }}&ndash;{{ stats.last_year }}</p>
 
+<div class="switcher">
+  <label for="lakeSwitch">Switch lake</label>
+  <select id="lakeSwitch">
+    <option value="">Jump to...</option>
+    {% for l in all_lakes %}<option value="{{ l.slug }}" {% if l.lake == lake %}selected{% endif %}>{{ l.lake }}</option>{% endfor %}
+  </select>
+</div>
+
 <div class="stat-grid">
   <div class="stat-tile"><div class="num">{{ "%.2f"|format(stats.avg_winning_length) if stats.avg_winning_length else "&ndash;" }}</div><div class="label">Avg winning length (in)</div></div>
   <div class="stat-tile"><div class="num">{{ "%.2f"|format(stats.avg_median_length) if stats.avg_median_length else "&ndash;" }}</div><div class="label">Avg median length (in)</div></div>
@@ -49,6 +57,10 @@ new Chart(document.getElementById('lakeChart'), {
     ]
   },
   options: { maintainAspectRatio: false }
+});
+
+document.getElementById('lakeSwitch').addEventListener('change', function (e) {
+  if (e.target.value) window.location.href = e.target.value + '.html';
 });
 </script>
 {% endblock %}

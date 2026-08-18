@@ -4,6 +4,14 @@
 <h1>{{ angler.angler_name }}</h1>
 <p class="subtitle">{{ angler.first_year }}&ndash;{{ angler.last_year }} &middot; {{ angler.tournaments_fished }} tournament(s)</p>
 
+<div class="switcher">
+  <label for="anglerSwitch">Switch angler</label>
+  <input type="text" id="anglerSwitch" list="anglerSwitchList" placeholder="Start typing a name...">
+  <datalist id="anglerSwitchList">
+  {% for a in all_anglers %}<option value="{{ a.angler_name }}" data-uid="{{ a.angler_uid }}"></option>{% endfor %}
+  </datalist>
+</div>
+
 <div class="stat-grid">
   <div class="stat-tile"><div class="num">{{ "%.1f"|format(angler.avg_place) if angler.avg_place else "&ndash;" }}</div><div class="label">Avg place</div></div>
   <div class="stat-tile"><div class="num">{{ angler.best_place if angler.best_place else "&ndash;" }}</div><div class="label">Best place</div></div>
@@ -171,6 +179,14 @@ document.getElementById('timelineToggle').addEventListener('click', function (e)
     anglerChart.options.scales.y.reverse = true;
   }
   anglerChart.update();
+});
+
+document.getElementById('anglerSwitch').addEventListener('change', function (e) {
+  const opt = Array.from(document.getElementById('anglerSwitchList').options)
+    .find(o => o.value.toLowerCase() === e.target.value.trim().toLowerCase());
+  if (opt && opt.dataset.uid) {
+    window.location.href = opt.dataset.uid + '.html';
+  }
 });
 </script>
 {% endblock %}

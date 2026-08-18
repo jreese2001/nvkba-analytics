@@ -128,3 +128,7 @@ input[type=text], input[type=search], select {
 }
 .toggle-group button:last-child { border-right: none; }
 .toggle-group button.active { background: var(--navy); color: #fff; }
+
+.switcher { display: flex; align-items: center; gap: 8px; margin: 4px 0 20px; }
+.switcher label { font-size: 0.82rem; color: var(--muted); white-space: nowrap; }
+.switcher input, .switcher select { max-width: 260px; }

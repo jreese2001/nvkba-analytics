@@ -148,6 +148,7 @@ def build():
             chart_winning=[t["winning_length"] for t in lake_tournaments],
             chart_median=[t["median_length"] for t in lake_tournaments],
             avg_top10_stdev=avg_top10_stdev,
+            all_lakes=lakes,
         )
 
     # ---- anglers/index.html ----
@@ -199,6 +200,7 @@ def build():
             aoy_rows=aoy_by_angler.get(uid, []),
             lake_breakdown=lake_breakdown,
             category_breakdown=category_breakdown,
+            all_anglers=anglers,
         )
 
     # ---- aoy/index.html ----

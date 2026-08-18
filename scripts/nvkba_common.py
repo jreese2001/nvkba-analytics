@@ -30,7 +30,6 @@ VENUE_CATEGORIES = {
     "Shenandoah River": "Freshwater Rivers (Smallmouth)",
     "Upper Potomac River": "Freshwater Rivers (Smallmouth)",
     "Tidal Potomac River": "Tidal Rivers",
-    "Tidal Rappahannock River": "Tidal Rivers",
     "Rappahannock River": "Tidal Rivers",
 }
 VENUE_CATEGORY_ORDER = ["Lakes", "Freshwater Rivers (Smallmouth)", "Tidal Rivers"]
