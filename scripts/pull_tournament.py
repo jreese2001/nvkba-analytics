@@ -111,7 +111,12 @@ def normalize(tournament_id: str, raw: dict, client: FirestoreClient, species_ca
     anglers_public = raw["anglers_public"]
     entries_public = raw["entries_public"]
 
-    if anglers_public:
+    # tournament-anglers-public is sometimes present but wrong (seen on a rescheduled
+    # two-day 2024 event with only 1 roster doc despite 48 anglers scoring) as well as
+    # sometimes empty outright on pre-2024 events -- a roster smaller than the number
+    # of anglers who actually scored can't be real, so fall back to "anglers who
+    # scored" in either case.
+    if anglers_public and len(anglers_public) >= len(leaderboard_ranked):
         field_size = len(anglers_public)
         field_size_is_exact = True
     else:
